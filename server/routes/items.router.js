@@ -9,6 +9,10 @@ router.get("/", async (req, res) => {
   try {
     const allItems = await Item.find();
 
+    if (!allItems.length) {
+      return res.status(400).json({ message: "Товаров не найдено" });
+    }
+
     res.status(200).json(allItems);
   } catch (error) {
     console.log(error);

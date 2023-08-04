@@ -1,15 +1,13 @@
-const config = require("config");
-const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
 module.exports = async (req, res, next) => {
   if (req.method === "OPTIONS") return next();
   try {
-    const userId = req.user._id;
+    const { _id } = req.user;
 
-    const currentUser = await User.findOne({ _id: userId });
+    const currentUser = await User.findOne({ _id });
 
-    if (!userId || !currentUser || currentUser.role !== "admin") {
+    if (!_id || !currentUser || currentUser.role !== "admin") {
       return res.status(401).json({ message: "Отказано" });
     }
 

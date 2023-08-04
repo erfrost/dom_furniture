@@ -17,6 +17,8 @@ app.use(bodyParser.urlencoded({ limit: "7mb", extended: true }));
 
 app.use("/images", express.static(`${__dirname}/images`));
 
+mongoose.set("strictQuery", false);
+
 createAdmin();
 
 app.use("/api", routes);

@@ -13,6 +13,10 @@ router.use("/cart", require("./cart.router"));
 
 router.use("/admin", require("./admin.router"));
 
+router.use("/orders", require("./order.router"));
+
+router.use("/feedback", require("./feedback.router"));
+
 router.get("/categories", async (req, res) => {
   try {
     const categories = await Category.find();

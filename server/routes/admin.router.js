@@ -38,7 +38,7 @@ router.post("/items", async (req, res) => {
       category_id,
       subcategory_id,
       specifications,
-      imageNames,
+      photo_names,
     } = req.body;
     if (
       !title ||
@@ -47,7 +47,7 @@ router.post("/items", async (req, res) => {
       !category_id ||
       !subcategory_id ||
       !specifications ||
-      !imageNames
+      !photo_names
     ) {
       return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
@@ -74,7 +74,7 @@ router.post("/items", async (req, res) => {
     await subcategory.save();
 
     const newImages = [];
-    for (const img of imageNames) {
+    for (const img of photo_names) {
       const newImage = await Image.create({
         name: img,
       });
@@ -162,11 +162,11 @@ router.post(
   adminMiddleware,
   async (req, res) => {
     try {
-      const { title, photo_url } = req.body;
-      if (!title || !photo_url) {
+      const { title, photo_name } = req.body;
+      if (!title || !photo_name) {
         return res.status(404).json({ message: "Поля не должны быть пустыми" });
       }
-      const newCategory = await Category.create({ title, photo_url });
+      const newCategory = await Category.create({ title, photo_name });
 
       res
         .status(200)
@@ -245,8 +245,8 @@ router.post(
   adminMiddleware,
   async (req, res) => {
     try {
-      const { title, photo_url, category_id } = req.body;
-      if (!title || !photo_url || !category_id) {
+      const { title, photo_name, category_id } = req.body;
+      if (!title || !photo_name || !category_id) {
         return res.status(404).json({ message: "Поля не должны быть пустыми" });
       }
 
@@ -258,7 +258,7 @@ router.post(
 
       const newSubcategory = await Subcategory.create({
         title,
-        photo_url,
+        photo_name,
         category_id,
       });
       category.subcategories.push(newSubcategory);

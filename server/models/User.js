@@ -19,6 +19,10 @@ const schema = new Schema(
       type: Array,
       required: true,
     },
+    orders: {
+      type: Array,
+      required: true,
+    },
   },
   {
     timestamps: true,
