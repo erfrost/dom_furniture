@@ -49,7 +49,7 @@ router.post("/signUp", [
 
       await save(newUser._id, tokens.refreshToken, tokens.autoAuthToken);
 
-      res.status(201).send({ ...tokens, userId: newUser._id });
+      res.status(201).json({ ...tokens, userId: newUser._id });
     } catch {
       res
         .status(500)
@@ -60,21 +60,26 @@ router.post("/signUp", [
 
 router.post("/signInWithCookie", async (req, res) => {
   try {
-    console.log(req.body);
-    const { autoAuthToken } = req.body;
+    const autoAuthToken = req.cookies.autoAuthToken || "";
+    const cartItems = req.cookies.cartItems || [];
+
     if (!autoAuthToken) {
-      res.status(401).json({ message: "В теле запроса нет токена" });
+      return res.status(401).json({ message: "В теле запроса нет токена" });
     }
 
     const data = validateAutoAuth(autoAuthToken);
     if (!data) {
-      res.status(401).json({ message: "Токен недействителен" });
+      return res.status(401).json({ message: "Токен недействителен" });
     }
 
     const currentUser = await User.findOne({ _id: data._id });
     if (!currentUser) {
-      res.status(401).json({ message: "Пользователь не найден" });
+      return res.status(401).json({ message: "Пользователь не найден" });
     }
+    cartItems.map(async (item) => {
+      currentUser.cart.push(item);
+    });
+    await currentUser.save();
 
     const tokens = generate({ _id: currentUser._id }, true);
     await save(currentUser._id, tokens.refreshToken, tokens.autoAuthToken);
@@ -101,7 +106,7 @@ router.post("/signInWithPassword", [
       const currentUser = await User.findOne({ email });
 
       if (!currentUser) {
-        return res.status(201).send({
+        return res.status(201).json({
           message: "Неверное имя пользователя или пароль",
         });
       }
@@ -111,7 +116,7 @@ router.post("/signInWithPassword", [
         currentUser.password
       );
       if (!isPasswordEqual) {
-        return res.status(201).send({
+        return res.status(201).json({
           message: "Неверное имя пользователя или пароль",
         });
       }
@@ -119,7 +124,7 @@ router.post("/signInWithPassword", [
       const tokens = generate({ _id: currentUser._id }, autoAuth);
       await save(currentUser._id, tokens.refreshToken, tokens.autoAuthToken);
 
-      res.status(200).send({ ...tokens, userId: currentUser._id });
+      res.status(200).json({ ...tokens, userId: currentUser._id });
     } catch {
       res
         .status(500)
@@ -146,7 +151,7 @@ router.post("/token", async (req, res) => {
     const tokens = generate({ _id: data._id });
     await save(data._id, tokens.refreshToken);
 
-    res.status(200).send({ ...tokens, userId: data._id });
+    res.status(200).json({ ...tokens, userId: data._id });
   } catch (error) {
     res
       .status(500)
