@@ -8,6 +8,7 @@ const {
   save,
   validateRefresh,
   findToken,
+  validateAutoAuth,
 } = require("../services/tokenService");
 
 router.post("/signUp", [
@@ -25,7 +26,7 @@ router.post("/signUp", [
         });
       }
 
-      const { email, password } = req.body;
+      const { email, password, autoAuth } = req.body;
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
@@ -41,11 +42,12 @@ router.post("/signUp", [
         password: hashedPassword,
         role: "user",
         cart: [],
+        orders: [],
       });
 
-      const tokens = generate({ _id: newUser._id });
+      const tokens = generate({ _id: newUser._id }, autoAuth);
 
-      await save(newUser._id, tokens.refreshToken);
+      await save(newUser._id, tokens.refreshToken, tokens.autoAuthToken);
 
       res.status(201).send({ ...tokens, userId: newUser._id });
     } catch {
@@ -56,19 +58,49 @@ router.post("/signUp", [
   },
 ]);
 
+router.post("/signInWithCookie", async (req, res) => {
+  try {
+    console.log(req.body);
+    const { autoAuthToken } = req.body;
+    if (!autoAuthToken) {
+      res.status(401).json({ message: "В теле запроса нет токена" });
+    }
+
+    const data = validateAutoAuth(autoAuthToken);
+    if (!data) {
+      res.status(401).json({ message: "Токен недействителен" });
+    }
+
+    const currentUser = await User.findOne({ _id: data._id });
+    if (!currentUser) {
+      res.status(401).json({ message: "Пользователь не найден" });
+    }
+
+    const tokens = generate({ _id: currentUser._id }, true);
+    await save(currentUser._id, tokens.refreshToken, tokens.autoAuthToken);
+
+    res.status(200).json({ ...tokens, userId: currentUser._id });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "На сервере произошла ошибка. Попробуйте позже" });
+  }
+});
+
 router.post("/signInWithPassword", [
   check("login", "Некорректный email").isEmail(),
   async (req, res) => {
     try {
       const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ message: "Некорректный email" });
+      }
 
-      const { email, password } = req.body;
+      const { email, password, autoAuth } = req.body;
 
-      let existingUser = undefined;
+      const currentUser = await User.findOne({ email });
 
-      existingUser = await User.findOne({ email });
-
-      if (!existingUser) {
+      if (!currentUser) {
         return res.status(201).send({
           message: "Неверное имя пользователя или пароль",
         });
@@ -76,7 +108,7 @@ router.post("/signInWithPassword", [
 
       const isPasswordEqual = await bcrypt.compare(
         password,
-        existingUser.password
+        currentUser.password
       );
       if (!isPasswordEqual) {
         return res.status(201).send({
@@ -84,10 +116,10 @@ router.post("/signInWithPassword", [
         });
       }
 
-      const tokens = generate({ _id: existingUser._id });
-      await save(existingUser._id, tokens.refreshToken);
+      const tokens = generate({ _id: currentUser._id }, autoAuth);
+      await save(currentUser._id, tokens.refreshToken, tokens.autoAuthToken);
 
-      res.status(200).send({ ...tokens, userId: existingUser._id });
+      res.status(200).send({ ...tokens, userId: currentUser._id });
     } catch {
       res
         .status(500)

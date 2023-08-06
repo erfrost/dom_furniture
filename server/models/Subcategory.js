@@ -6,7 +6,7 @@ const schema = new Schema({
     required: true,
     unique: true,
   },
-  photo_url: {
+  photo_name: {
     type: String,
     required: true,
   },

@@ -17,6 +17,8 @@ router.use("/orders", require("./order.router"));
 
 router.use("/feedback", require("./feedback.router"));
 
+router.use("/news", require("./news.router"));
+
 router.get("/categories", async (req, res) => {
   try {
     const categories = await Category.find();

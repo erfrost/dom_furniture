@@ -10,6 +10,9 @@ const schema = new Schema(
       type: String,
       required: true,
     },
+    autoAuthToken: {
+      type: String,
+    },
   },
   {
     timestamps: true,

@@ -31,16 +31,16 @@ const Index = () => {
         },
       });
       console.log(data);
-      const res = await axiosInstance.post("admin/items", {
-        title: "fdgdfgfg",
-        description: "fdgdfgfg",
-        price: 2000,
-        category_id: "64c63879b14f327a0ffcdc4d",
-        subcategory_id: "64c64214d9415426da6cc201",
-        specifications: [],
-        imageNames: data,
-      });
-      console.log(res);
+      // const res = await axiosInstance.post("admin/items", {
+      //   title: "fdgdfgfg",
+      //   description: "fdgdfgfg",
+      //   price: 2000,
+      //   category_id: "64c63879b14f327a0ffcdc4d",
+      //   subcategory_id: "64c64214d9415426da6cc201",
+      //   specifications: [],
+      //   photo_names: data,
+      // });
+      // console.log(res);
     } catch (error) {
       console.log(error);
     }
@@ -70,14 +70,6 @@ const Index = () => {
               key={index}
             />
           ))}
-        <Image
-          src={
-            "http://localhost:8080/images/ca801d2d-bf5c-4b4d-a380-791ff1d7b46c-400x400.jpeg"
-          }
-          alt="Uploaded"
-          width="300"
-          height="300"
-        />
       </div>
     </>
   );

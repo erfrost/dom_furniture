@@ -9,6 +9,7 @@ const Subcategory = require("../models/Subcategory");
 const authMiddleware = require("../middleware/auth.middleware");
 const adminMiddleware = require("../middleware/admin.middleware");
 const Image = require("../models/Image");
+const deleteImage = require("../services/deleteImage");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -25,8 +26,6 @@ const upload = multer({
     fileSize: 7 * 1024 * 1024, // 7 МБ
   },
 });
-
-//////// добавить middleware
 
 //создание товара
 router.post("/items", async (req, res) => {
@@ -47,7 +46,7 @@ router.post("/items", async (req, res) => {
       !category_id ||
       !subcategory_id ||
       !specifications ||
-      !photo_names
+      !photo_names.length
     ) {
       return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
@@ -75,7 +74,7 @@ router.post("/items", async (req, res) => {
 
     const newImages = [];
     for (const img of photo_names) {
-      const newImage = await Image.create({
+      const newImage = await Image.findOne({
         name: img,
       });
       newImages.push(newImage.name); // Добавляем ID созданного изображения в массив newImages
@@ -146,6 +145,8 @@ router.delete(
 
       await currentItem.deleteOne();
 
+      await deleteImage(currentItem.photo_names);
+
       res.status(200).json({ message: "Товар успешно удален" });
     } catch (error) {
       res
@@ -215,7 +216,7 @@ router.delete(
   async (req, res) => {
     try {
       const currentCategory = await Category.findOne({
-        id: req.params.category_id,
+        _id: req.params.category_id,
       });
       if (!currentCategory) {
         return res.status(404).json({ message: "Элемент не найден" });
@@ -228,6 +229,8 @@ router.delete(
       subcategoriesIdArray.map(async (_id) => await Subcategory.deleteOne(_id));
 
       currentCategory.deleteOne(req.body);
+
+      await deleteImage([currentCategory.photo_name]);
 
       res.status(200).json({ message: "Категория успешно удалена" });
     } catch (error) {
@@ -251,17 +254,16 @@ router.post(
       }
 
       const category = await Category.findOne({ _id: category_id });
-
       if (!category) {
         return res.status(404).json({ message: "Категория не найдена" });
       }
-
+      console.log({ title, photo_name, category_id });
       const newSubcategory = await Subcategory.create({
         title,
         photo_name,
         category_id,
       });
-      category.subcategories.push(newSubcategory);
+      category.subcategories.push(newSubcategory._id);
 
       await category.save();
 
@@ -270,6 +272,7 @@ router.post(
         element: newSubcategory,
       });
     } catch (error) {
+      console.log(error);
       res
         .status(400)
         .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
@@ -338,6 +341,8 @@ router.delete(
 
       await currentSubcategory.deleteOne();
 
+      await deleteImage([currentSubcategory.photo_name]);
+
       res.status(200).json({ message: "Подкатегория успешно удалена" });
     } catch (error) {
       res
@@ -347,19 +352,30 @@ router.delete(
   }
 );
 
-router.post("/uploadImage", upload.any(), async (req, res) => {
-  try {
-    const files = req.files;
-    if (!files) {
-      return res.status(400).json({ message: "Файл не был загружен" });
-    }
+router.post(
+  "/uploadImage",
+  authMiddleware,
+  adminMiddleware,
+  upload.any(),
+  async (req, res) => {
+    try {
+      const files = req.files;
+      if (!files) {
+        return res.status(400).json({ message: "Файл не был загружен" });
+      }
+      files.map(async (img) => {
+        await Image.create({
+          name: img.filename,
+        });
+      });
 
-    res.status(200).json(files.map((img) => img.filename));
-  } catch (error) {
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+      res.status(200).json(files.map((img) => img.filename));
+    } catch (error) {
+      res
+        .status(400)
+        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    }
   }
-});
+);
 
 module.exports = router;
