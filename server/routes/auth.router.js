@@ -10,11 +10,13 @@ const {
   findToken,
   validateAutoAuth,
 } = require("../services/tokenService");
+const { passwordValidate } = require("../services/regexp");
 
 router.post("/signUp", [
   check("email", "Некорректный email").isEmail(),
   check("password", "Пароль должен содержать минимум 8 символов").isLength({
     min: 8,
+    max: 64,
   }),
   async (req, res) => {
     try {
@@ -27,6 +29,13 @@ router.post("/signUp", [
       }
 
       const { email, password, autoAuth } = req.body;
+
+      if (!passwordValidate(password)) {
+        return res.status(201).json({
+          message:
+            "Пароль должен содержать только латинские символы, минимум 1 цифру и минимум 1 символ в верхнем регистре",
+        });
+      }
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
@@ -51,9 +60,7 @@ router.post("/signUp", [
 
       res.status(201).json({ ...tokens, userId: newUser._id });
     } catch {
-      res
-        .status(500)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позже" });
+      res.status(500).json({ message: "Internal server error" });
     }
   },
 ]);
@@ -86,9 +93,7 @@ router.post("/signInWithCookie", async (req, res) => {
 
     res.status(200).json({ ...tokens, userId: currentUser._id });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позже" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -126,9 +131,7 @@ router.post("/signInWithPassword", [
 
       res.status(200).json({ ...tokens, userId: currentUser._id });
     } catch {
-      res
-        .status(500)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позже" });
+      res.status(500).json({ message: "Internal server error" });
     }
   },
 ]);
@@ -153,9 +156,7 @@ router.post("/token", async (req, res) => {
 
     res.status(200).json({ ...tokens, userId: data._id });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позже" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

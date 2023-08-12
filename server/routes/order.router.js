@@ -27,12 +27,11 @@ router.post("/add", authMiddleware, async (req, res) => {
       !buyer ||
       !phone
     ) {
-      return res
-        .status(400)
-        .json({ message: "Не все поля заполнены для создания заказа." });
+      return res.status(400).json({ message: "Не все поля заполнены" });
     }
 
     const { _id } = req.user;
+
     const currentUser = await User.findOne({ _id });
     if (!currentUser) {
       return res.status(200).json({ message: "Пользователь не найден." });
@@ -53,21 +52,20 @@ router.post("/add", authMiddleware, async (req, res) => {
     currentUser.orders.push(newOrder._id);
     await currentUser.save();
 
-    res
-      .status(200)
-      .json({ message: "Заказ успешно создан.", element: newOrder });
+    res.status(200).json({ message: "Заказ успешно создан." });
   } catch (error) {
-    console.log(error);
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее." });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 router.delete("/delete", authMiddleware, async (req, res) => {
   try {
-    console.log(req.user);
     const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(200).json({ message: "Не передан id заказа" });
+    }
+
     await Order.deleteOne({ _id: orderId });
 
     const { _id } = req.user;
@@ -82,14 +80,9 @@ router.delete("/delete", authMiddleware, async (req, res) => {
     currentUser.markModified("orders");
     await currentUser.save();
 
-    res
-      .status(200)
-      .json({ message: "Заказ успешно удален.", element: currentUser });
+    res.status(200).json({ message: "Заказ успешно удален." });
   } catch (error) {
-    console.log(error);
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее." });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

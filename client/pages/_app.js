@@ -1,5 +1,6 @@
 import Head from "next/head";
 import "../styles/globals.css";
+import { ChakraProvider } from "@chakra-ui/react";
 
 export default function App({ Component, pageProps }) {
   return (
@@ -12,7 +13,9 @@ export default function App({ Component, pageProps }) {
 
         {/* <script src="//code.jivo.ru/widget/fo3JcgKaha" async></script> */}
       </Head>
-      <Component {...pageProps} />
+      <ChakraProvider>
+        <Component {...pageProps} />
+      </ChakraProvider>
     </>
   );
 }

@@ -31,4 +31,6 @@ const schema = new Schema({
   },
 });
 
+schema.index({ title: "text", price: "number" });
+
 module.exports = model("Item", schema);

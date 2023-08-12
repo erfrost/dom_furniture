@@ -6,10 +6,12 @@ const { v4: uuidv4 } = require("uuid");
 const Item = require("../models/Item");
 const Category = require("../models/Category");
 const Subcategory = require("../models/Subcategory");
+const News = require("../models/News");
 const authMiddleware = require("../middleware/auth.middleware");
 const adminMiddleware = require("../middleware/admin.middleware");
 const Image = require("../models/Image");
 const deleteImage = require("../services/deleteImage");
+const { titleValidate, descriptionValidate } = require("../services/regexp");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -23,7 +25,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 7 * 1024 * 1024, // 7 МБ
+    fileSize: 20 * 1024 * 1024, // 7 МБ
   },
 });
 
@@ -50,7 +52,19 @@ router.post("/items", async (req, res) => {
     ) {
       return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
-
+    if (title.length > 1000 || description.length > 100) {
+      return res.status(404).json({ message: "Превышен лимит по символам" });
+    }
+    if (!titleValidate(title)) {
+      return res
+        .status(404)
+        .json({ message: "Название товара содержит недопустимые символы" });
+    }
+    if (!descriptionValidate(description)) {
+      return res
+        .status(404)
+        .json({ message: "Описание товара содержит недопустимые символы" });
+    }
     const subcategory = await Subcategory.findOne({ _id: subcategory_id });
     if (!subcategory) {
       return res.status(404).json({ message: "Подкатегория не найдена" });
@@ -84,298 +98,335 @@ router.post("/items", async (req, res) => {
 
     await newItem.save();
 
-    res
-      .status(200)
-      .json({ message: "Товар успешно добавлен", element: newItem });
+    res.status(200).json({ message: "Товар успешно добавлен" });
   } catch (error) {
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 //обновление товара
-router.patch(
-  "/items/:item_id",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const currentItem = await Item.findOne({ id: req.params.item_id });
-      if (!currentItem) {
-        return res.status(404).json({ message: "Товар не найден" });
-      }
-      if (!req.body) {
-        return res.status(404).json({ message: "Поля не должны быть пустыми" });
-      }
-      await currentItem.updateOne(req.body);
+router.patch("/items/:item_id", async (req, res) => {
+  try {
+    const data = req.body;
 
-      res.status(200).json({ message: "Товар успешно обновлен" });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    if (data.title.length > 1000 || data.description.length > 100) {
+      return res.status(404).json({ message: "Превышен лимит по символам" });
     }
+
+    const currentItem = await Item.findOne({ _id: req.params.item_id });
+    if (!currentItem) {
+      return res.status(404).json({ message: "Товар не найден" });
+    }
+    if (!req.body) {
+      return res.status(404).json({ message: "Поля не должны быть пустыми" });
+    }
+    if (data.title && !titleValidate(data.title)) {
+      return res
+        .status(404)
+        .json({ message: "Название товара содержит недопустимые символы" });
+    }
+    if (data.description && !descriptionValidate(data.description)) {
+      return res
+        .status(404)
+        .json({ message: "Описание товара содержит недопустимые символы" });
+    }
+
+    const newItem = await currentItem.updateOne(req.body);
+    console.log(newItem);
+
+    res.status(200).json({ message: "Товар успешно обновлен" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
 
 //удаление товара
-router.delete(
-  "/items/:item_id",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const itemId = req.params.item_id;
+router.delete("/items/:item_id", async (req, res) => {
+  try {
+    const itemId = req.params.item_id;
 
-      const currentItem = await Item.findOne({ _id: itemId });
-      if (!currentItem) {
-        return res.status(404).json({ message: "Элемент не найден" });
-      }
-
-      const subcategory = await Subcategory.findOne({
-        _id: currentItem.subcategory_id,
-      });
-      if (!subcategory) {
-        return res.status(404).json({ message: "Подкатегория не найдена" });
-      }
-      subcategory.items.pull(itemId);
-
-      await subcategory.save();
-
-      await currentItem.deleteOne();
-
-      await deleteImage(currentItem.photo_names);
-
-      res.status(200).json({ message: "Товар успешно удален" });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    const currentItem = await Item.findOne({ _id: itemId });
+    if (!currentItem) {
+      return res.status(404).json({ message: "Элемент не найден" });
     }
+
+    const subcategory = await Subcategory.findOne({
+      _id: currentItem.subcategory_id,
+    });
+    if (!subcategory) {
+      return res.status(404).json({ message: "Подкатегория не найдена" });
+    }
+    subcategory.items.pull(itemId);
+
+    await subcategory.save();
+
+    await currentItem.deleteOne();
+
+    await deleteImage(currentItem.photo_names);
+
+    res.status(200).json({ message: "Товар успешно удален" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
 
 //создание категории
-router.post(
-  "/categories",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const { title, photo_name } = req.body;
-      if (!title || !photo_name) {
-        return res.status(404).json({ message: "Поля не должны быть пустыми" });
-      }
-      const newCategory = await Category.create({ title, photo_name });
+router.post("/categories", async (req, res) => {
+  try {
+    const { title, photo_name } = req.body;
 
-      res
-        .status(200)
-        .json({ message: "Категория успешно добавлена", element: newCategory });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    if (!title || !photo_name) {
+      return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
+    if (title.length > 1000) {
+      return res.status(404).json({ message: "Превышен лимит по символам" });
+    }
+    if (!nameValidate(title)) {
+      return res
+        .status(404)
+        .json({ message: "Название категории содержит недопустимые символы" });
+    }
+    if (await Category.findOne({ title })) {
+      return res
+        .status(404)
+        .json({ message: "Категория с таким названием уже существует" });
+    }
+    const newCategory = await Category.create({
+      title,
+      photo_name: photo_name[0],
+    });
+
+    res.status(200).json({ message: "Категория успешно добавлена" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
 
 //обновление категории
-router.patch(
-  "/categories/:category_id",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const currentCategory = await Category.findOne({
-        id: req.params.category_id,
-      });
-      if (!currentCategory) {
-        return res.status(404).json({ message: "Элемент не найден" });
-      }
-      if (!req.body) {
-        return res.status(404).json({ message: "Поля не должны быть пустыми" });
-      }
-
-      await currentCategory.updateOne(req.body);
-
-      res.status(200).json({ message: "Категория успешно обновлена" });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+router.patch("/categories/:category_id", async (req, res) => {
+  try {
+    const { title, photo_name } = req.body;
+    if (!title || !photo_name) {
+      return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
+    if (title.length > 1000) {
+      return res.status(404).json({ message: "Превышен лимит по символам" });
+    }
+    if (!nameValidate(title)) {
+      return res
+        .status(404)
+        .json({ message: "Название категории содержит недопустимые символы" });
+    }
+    if (await Category.findOne({ title })) {
+      return res
+        .status(404)
+        .json({ message: "Категория с таким названием уже существует" });
+    }
+
+    const currentCategory = await Category.findOne({
+      _id: req.params.category_id,
+    });
+    if (!currentCategory) {
+      return res.status(404).json({ message: "Элемент не найден" });
+    }
+    if (!req.body) {
+      return res.status(404).json({ message: "Поля не должны быть пустыми" });
+    }
+
+    await currentCategory.updateOne({
+      title,
+      photo_name: photo_name[0],
+    });
+
+    res.status(200).json({ message: "Категория успешно обновлена" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
 
 //удаление категории
-router.delete(
-  "/categories/:category_id",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const currentCategory = await Category.findOne({
-        _id: req.params.category_id,
-      });
-      if (!currentCategory) {
-        return res.status(404).json({ message: "Элемент не найден" });
-      }
-      const subcategoriesIdArray = currentCategory.subcategories;
-
-      subcategoriesIdArray.map(
-        async (_id) => await Item.deleteOne({ subcategory_id: _id })
-      );
-      subcategoriesIdArray.map(async (_id) => await Subcategory.deleteOne(_id));
-
-      currentCategory.deleteOne(req.body);
-
-      await deleteImage([currentCategory.photo_name]);
-
-      res.status(200).json({ message: "Категория успешно удалена" });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+router.delete("/categories/:category_id", async (req, res) => {
+  try {
+    const currentCategory = await Category.findOne({
+      _id: req.params.category_id,
+    });
+    if (!currentCategory) {
+      return res.status(404).json({ message: "Элемент не найден" });
     }
+    const subcategoriesIdArray = currentCategory.subcategories;
+
+    subcategoriesIdArray.map(
+      async (_id) => await Item.deleteOne({ subcategory_id: _id })
+    );
+    subcategoriesIdArray.map(async (_id) => await Subcategory.deleteOne(_id));
+
+    currentCategory.deleteOne(req.body);
+
+    await deleteImage([currentCategory.photo_name]);
+
+    res.status(200).json({ message: "Категория успешно удалена" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
 
 //создание подкатегории
-router.post(
-  "/subcategories",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const { title, photo_name, category_id } = req.body;
-      if (!title || !photo_name || !category_id) {
-        return res.status(404).json({ message: "Поля не должны быть пустыми" });
-      }
-
-      const category = await Category.findOne({ _id: category_id });
-      if (!category) {
-        return res.status(404).json({ message: "Категория не найдена" });
-      }
-      console.log({ title, photo_name, category_id });
-      const newSubcategory = await Subcategory.create({
-        title,
-        photo_name,
-        category_id,
-      });
-      category.subcategories.push(newSubcategory._id);
-
-      await category.save();
-
-      res.status(200).json({
-        message: "Подкатегория успешно добавлена",
-        element: newSubcategory,
-      });
-    } catch (error) {
-      console.log(error);
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+router.post("/subcategories", async (req, res) => {
+  try {
+    const { title, photo_name, category_id } = req.body;
+    if (!title || !photo_name || !category_id) {
+      return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
+    if (title.length > 1000) {
+      return res.status(404).json({ message: "Превышен лимит по символам" });
+    }
+    if (!nameValidate(title)) {
+      return res.status(404).json({
+        message: "Название подкатегории содержит недопустимые символы",
+      });
+    }
+
+    const category = await Category.findOne({ _id: category_id });
+    if (!category) {
+      return res.status(404).json({ message: "Категория не найдена" });
+    }
+    console.log({ title, photo_name, category_id });
+    const newSubcategory = await Subcategory.create({
+      title,
+      photo_name: photo_name[0],
+      category_id,
+    });
+    category.subcategories.push(newSubcategory._id);
+
+    await category.save();
+
+    res.status(200).json({ message: "Подкатегория успешно добавлена" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
 
 //обновление подкатегории
-router.patch(
-  "/subcategories/:subcategory_id",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const currentSubcategory = await Subcategory.findOne({
-        id: req.params.subcategory_id,
-      });
-      if (!currentSubcategory) {
-        return res.status(404).json({ message: "Элемент не найден" });
-      }
-      if (!req.body) {
-        return res.status(404).json({ message: "Поля не должны быть пустыми" });
-      }
-      await currentSubcategory.updateOne(req.body);
-
-      res.status(200).json({ message: "Категория успешно обновлена" });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+router.patch("/subcategories/:subcategory_id", async (req, res) => {
+  try {
+    const { title, photo_name } = req.body;
+    if (!title || !photo_name) {
+      return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
+    if (title.length > 1000) {
+      return res.status(404).json({ message: "Превышен лимит по символам" });
+    }
+    if (!nameValidate(title)) {
+      return res.status(404).json({
+        message: "Название подкатегории содержит недопустимые символы",
+      });
+    }
+
+    const currentSubcategory = await Subcategory.findOne({
+      _id: req.params.subcategory_id,
+    });
+    if (!currentSubcategory) {
+      return res.status(404).json({ message: "Элемент не найден" });
+    }
+
+    await currentSubcategory.updateOne({ title, photo_name: photo_name[0] });
+
+    res.status(200).json({ message: "Категория успешно обновлена" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
 
 //удаление подкатегории
-router.delete(
-  "/subcategories/:subcategory_id",
-  authMiddleware,
-  adminMiddleware,
-  async (req, res) => {
-    try {
-      const subcategoryId = req.params.subcategory_id;
+router.delete("/subcategories/:subcategory_id", async (req, res) => {
+  try {
+    const subcategoryId = req.params.subcategory_id;
 
-      const currentSubcategory = await Subcategory.findOne({
-        _id: subcategoryId,
-      });
-      if (!currentSubcategory) {
-        return res.status(404).json({ message: "Элемент не найден" });
-      }
-
-      const itemsIdArray = currentSubcategory.items;
-      itemsIdArray.map(async (_id) => {
-        await Item.deleteOne(_id);
-      });
-
-      const category = await Category.findOne({
-        _id: currentSubcategory.category_id,
-      });
-      if (!category) {
-        return res.status(404).json({ message: "Категория не найдена" });
-      }
-
-      category.subcategories.pull({ _id: subcategoryId });
-
-      await category.save();
-
-      await currentSubcategory.deleteOne();
-
-      await deleteImage([currentSubcategory.photo_name]);
-
-      res.status(200).json({ message: "Подкатегория успешно удалена" });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    const currentSubcategory = await Subcategory.findOne({
+      _id: subcategoryId,
+    });
+    if (!currentSubcategory) {
+      return res.status(404).json({ message: "Элемент не найден" });
     }
-  }
-);
 
-router.post(
-  "/uploadImage",
-  authMiddleware,
-  adminMiddleware,
-  upload.any(),
-  async (req, res) => {
-    try {
-      const files = req.files;
-      if (!files) {
-        return res.status(400).json({ message: "Файл не был загружен" });
-      }
-      files.map(async (img) => {
-        await Image.create({
-          name: img.filename,
-        });
-      });
+    const itemsIdArray = currentSubcategory.items;
+    itemsIdArray.map(async (_id) => {
+      await Item.deleteOne(_id);
+    });
 
-      res.status(200).json(files.map((img) => img.filename));
-    } catch (error) {
-      res
-        .status(400)
-        .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    const category = await Category.findOne({
+      _id: currentSubcategory.category_id,
+    });
+    if (!category) {
+      return res.status(404).json({ message: "Категория не найдена" });
     }
+
+    category.subcategories.pull({ _id: subcategoryId });
+
+    await category.save();
+
+    await currentSubcategory.deleteOne();
+
+    await deleteImage([currentSubcategory.photo_name]);
+
+    res.status(200).json({ message: "Подкатегория успешно удалена" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
-);
+});
+
+router.post("/news", async (req, res) => {
+  try {
+    const { photo_name } = req.body;
+    console.log(photo_name);
+    const newPost = await News.create({
+      photo_name: photo_name[0],
+    });
+
+    res.status(200).json({ message: "Новость успешно добавлена" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/news/:news_id", async (req, res) => {
+  try {
+    const { news_id } = req.params;
+
+    const currentPost = await News.findOne({ _id: news_id });
+    if (!currentPost) {
+      return res.status(404).json({ message: "Новость не найдена" });
+    }
+    const photo_name = currentPost.photo_name;
+
+    await News.deleteOne({ _id: news_id });
+    await deleteImage([photo_name]);
+
+    res.status(200).json({ message: "Новость успешно удалена" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/uploadImage", upload.any(), async (req, res) => {
+  try {
+    const files = req.files;
+    console.log(files);
+    if (!files) {
+      return res.status(400).json({ message: "Файл не был загружен" });
+    }
+    files.map(async (img) => {
+      await Image.create({
+        name: img.filename,
+      });
+    });
+
+    res.status(200).json(files.map((img) => img.filename));
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 module.exports = router;

@@ -1,0 +1,6 @@
+.alert {
+    width: auto !important;
+    position: absolute !important;
+    bottom: 25px !important;
+    left: 25px !important;
+}

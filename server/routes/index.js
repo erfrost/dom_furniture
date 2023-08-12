@@ -1,6 +1,7 @@
 const express = require("express");
 const Category = require("../models/Category");
 const Subcategory = require("../models/Subcategory");
+const News = require("../models/News");
 const router = express.Router({ mergeParams: true });
 
 router.use("/auth", require("./auth.router"));
@@ -17,39 +18,55 @@ router.use("/orders", require("./order.router"));
 
 router.use("/feedback", require("./feedback.router"));
 
-router.use("/news", require("./news.router"));
-
 router.get("/categories", async (req, res) => {
   try {
     const categories = await Category.find();
+    if (!categories || !categories.length) {
+      return res.status(404).json({ message: "Категорий не найдено" });
+    }
+
     res.status(200).json(categories);
   } catch (error) {
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 router.get("/subcategories/:category_id", async (req, res) => {
   try {
     const categoryId = req.params.category_id;
-
+    console.log(categoryId);
     const category = await Category.findOne({ _id: categoryId });
     if (!category) {
       return res.status(404).json({ message: "Категория не найдена" });
     }
 
     const subcategoriesIdArray = category.subcategories;
-
+    console.log(subcategoriesIdArray);
     const subcategories = await Subcategory.find({
       _id: { $in: subcategoriesIdArray },
     });
+    if (!subcategories || !subcategories.length) {
+      return res.status(404).json({ message: "Подкатегорий не найдено" });
+    }
 
     res.status(200).json(subcategories);
   } catch (error) {
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/news", async (req, res) => {
+  try {
+    console.log(req);
+    const allNews = await News.find();
+    if (!allNews || !allNews.length) {
+      return res.status(404).json({ message: "Новостей не найдено" });
+    }
+    console.log(allNews);
+    res.status(200).json(allNews);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

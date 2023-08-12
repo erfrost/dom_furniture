@@ -9,10 +9,17 @@ router.post("/update", auth, async (req, res) => {
     const { _id } = req.user;
     const { items } = req.body;
 
+    if (!items.length) {
+      return res.status(400).json({ message: "Товары не найдены" });
+    }
+
     const currentUser = await User.findOne({ _id });
 
     for (const item of items) {
       const currentItem = await Item.findOne({ _id: item.itemId });
+      if (currentItem) {
+        return res.status(400).json({ message: "Один из товаров не найден" });
+      }
 
       const existingCartItem = currentUser.cart.find(
         (cartItem) => cartItem.itemId.toString() === currentItem._id.toString()
@@ -31,9 +38,7 @@ router.post("/update", auth, async (req, res) => {
     res.status(200).json(currentUser);
   } catch (error) {
     console.log(error);
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -41,6 +46,10 @@ router.delete("/delete", auth, async (req, res) => {
   try {
     const { _id } = req.user;
     const { itemId } = req.body;
+
+    if (!itemId) {
+      return res.status(400).json({ message: "Не передан id товара" });
+    }
 
     const currentUser = await User.findOne({ _id });
     const filteredCart = currentUser.cart.filter(
@@ -51,15 +60,9 @@ router.delete("/delete", auth, async (req, res) => {
     currentUser.markModified("cart");
     await currentUser.save();
 
-    res.status(200).json({
-      message: "Товар успешно удален из корзины",
-      element: currentUser,
-    });
+    res.status(200).json({ message: "Товар успешно удален из корзины" });
   } catch (error) {
-    console.log(error);
-    res
-      .status(400)
-      .json({ message: "На сервере произошла ошибка. Попробуйте позднее" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

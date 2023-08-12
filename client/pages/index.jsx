@@ -1,5 +1,4 @@
-import axiosInstance from "@/axios.config";
-import Header from "@/components/Header/Header";
+import Header from "@/AdminComponents/Header/Header";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -19,18 +18,16 @@ const Index = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-
     const formData = new FormData();
     files.map((img, index) => formData.append(`image_${index}`, img));
 
     try {
-      const { data } = await axiosInstance.post("admin/uploadImage", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      console.log(data);
+      // const { data } = await axiosInstance.post("admin/uploadImage", formData, {
+      //   headers: {
+      //     "Content-Type": "multipart/form-data",
+      //   },
+      // });
+      // console.log(data);
       // const res = await axiosInstance.post("admin/items", {
       //   title: "fdgdfgfg",
       //   description: "fdgdfgfg",
@@ -45,7 +42,7 @@ const Index = () => {
       console.log(error);
     }
   };
-
+  console.log(image, files);
   return (
     <>
       <Header />
@@ -63,7 +60,9 @@ const Index = () => {
         {image &&
           image.map((img, index) => (
             <Image
-              src={img}
+              src={
+                "http://localhost:8080/images/54e73963-3a13-421f-8dfd-1276b1e2181b-400x400.jpeg"
+              }
               alt="Uploaded"
               width="300"
               height="300"

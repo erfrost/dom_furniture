@@ -1,0 +1,44 @@
+.AdminHeader {  
+    display: flex;
+    flex-direction: row;
+}
+.AdminHeader div {
+    z-index: 9999 !important;
+}
+.btn {
+    width: 50px !important;
+    height: 50px !important;
+    border-radius: 50% !important;
+    background-color: #BAA8F0;
+    position: fixed;
+    top: 25px;
+    right: 25px;
+}
+.btn span {
+    color: white;
+}
+.btn:hover {
+    background-color: #825FED !important;
+}
+.list {
+    padding: 0 !important;
+    border-radius: 15px !important;
+}
+.menuBtn {
+    background-color: white ;
+    transition: all 0.3s ease !important;
+}
+.menuBtn:hover {
+    background-color: #BAA8F0;
+}
+.menuBtn:focus {
+    background-color: #BAA8F0 !important;
+}
+.firstBtn {
+    border-top-left-radius: 15px !important;
+    border-top-right-radius: 15px !important;
+}
+.lastBtn {
+    border-bottom-left-radius: 15px !important;
+    border-bottom-right-radius: 15px !important;
+}
