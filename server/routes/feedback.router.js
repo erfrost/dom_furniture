@@ -4,7 +4,17 @@ const auth = require("../middleware/auth.middleware");
 const Feedback = require("../models/Feedback");
 const { descriptionValidate, titleValidate } = require("../services/regexp");
 
-router.post("/add", async (req, res) => {
+router.get("/", async (req, res) => {
+  try {
+    const allFeedbacks = await Feedback.find();
+
+    res.status(200).json(allFeedbacks);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/", async (req, res) => {
   try {
     const { name, text } = req.body;
     if (!name || !text) {
@@ -23,26 +33,32 @@ router.post("/add", async (req, res) => {
       text,
     });
 
-    res.status(200).json({ message: "Отзыв успешно дабавлен" });
+    res.status(200).json({ message: "Отзыв успешно добавлен" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.delete("/delete", async (req, res) => {
+router.delete("/:feedback_id", async (req, res) => {
   try {
-    const { feedbackId } = req.body;
+    const feedbackId = req.params.feedback_id;
+
+    if (!feedbackId) {
+      return res
+        .status(400)
+        .json({ message: "Не передан id отзыва для удаления" });
+    }
 
     const currentFeedback = await Feedback.findOne({ _id: feedbackId });
     if (!currentFeedback) {
       return res
         .status(400)
-        .json({ message: "Отзыв с указанным id не найден." });
+        .json({ message: "Отзыв с указанным id не найден" });
     }
 
     await currentFeedback.delete();
 
-    res.status(200).json({ message: "Отзыв успешно удален." });
+    res.status(200).json({ message: "Отзыв успешно удален" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }

@@ -53,18 +53,12 @@ const Change = ({ categories, error }) => {
 
       const formData = new FormData();
       formData.append(`image`, file);
+      formData.append("title", title);
       try {
-        const photos = await axiosInstance.post("admin/uploadImage", formData, {
+        await axiosInstance.patch(`admin/categories/${categoryId}`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        });
-
-        await axiosInstance.patch(`admin/categories/${categoryId}`, {
-          title: title || currentCategory.title,
-          photo_name: photos.data.length
-            ? photos.data
-            : [currentCategory.photo_name],
         });
         setSuccess("Категория успешно обновлена");
       } catch (error) {

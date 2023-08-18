@@ -19,7 +19,6 @@ router.get("/search", async (req, res) => {
 
     res.status(200).json(filteredItems);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -96,6 +95,7 @@ router.get("/by_subcategory/:subcategory_id", async (req, res) => {
     const currentSubcategory = await Subcategory.findOne({
       _id: subcategoryId,
     });
+
     if (!currentSubcategory) {
       return res.status(404).json({ message: "Проверьте параметры запроса" });
     }
@@ -112,9 +112,7 @@ router.get("/by_subcategory/:subcategory_id", async (req, res) => {
       allItems = allItems.skip(offset);
     }
 
-    const items = await allItems.exec();
-
-    res.status(200).json(items);
+    res.status(200).json(allItems);
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }

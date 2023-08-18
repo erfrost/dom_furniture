@@ -30,8 +30,14 @@ const upload = multer({
 });
 
 //создание товара
-router.post("/items", async (req, res) => {
+router.post("/items", upload.any(), async (req, res) => {
   try {
+    const files = req.files;
+
+    if (!files.length) {
+      return res.status(400).json({ message: "Изображения не были загружены" });
+    }
+
     const {
       title,
       description,
@@ -39,16 +45,15 @@ router.post("/items", async (req, res) => {
       category_id,
       subcategory_id,
       specifications,
-      photo_names,
     } = req.body;
+
     if (
       !title ||
       !description ||
       !price ||
       !category_id ||
       !subcategory_id ||
-      !specifications ||
-      !photo_names.length
+      !specifications
     ) {
       return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
@@ -72,6 +77,11 @@ router.post("/items", async (req, res) => {
     if (subcategory_id.toString() !== subcategory._id.toString()) {
       return res.status(404).json({ message: "Категория не найдена" });
     }
+    if (await Item.findOne({ title: req.body.title })) {
+      return res
+        .status(404)
+        .json({ message: "Товар с таким название уже существует" });
+    }
 
     const newItem = await Item.create({
       title,
@@ -79,7 +89,7 @@ router.post("/items", async (req, res) => {
       price,
       category_id,
       subcategory_id,
-      specifications,
+      specifications: JSON.parse(specifications),
     });
 
     subcategory.items.push(newItem);
@@ -87,11 +97,12 @@ router.post("/items", async (req, res) => {
     await subcategory.save();
 
     const newImages = [];
-    for (const img of photo_names) {
-      const newImage = await Image.findOne({
-        name: img,
+    for (const img of files) {
+      const currentImage = await Image.create({
+        name: img.filename,
       });
-      newImages.push(newImage.name); // Добавляем ID созданного изображения в массив newImages
+
+      newImages.push(currentImage.name); // Добавляем ID созданного изображения в массив newImages
     }
 
     newItem.photo_names = newImages; // Присваиваем массив newImages полю photo_id объекта newItem
@@ -100,40 +111,62 @@ router.post("/items", async (req, res) => {
 
     res.status(200).json({ message: "Товар успешно добавлен" });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
 //обновление товара
-router.patch("/items/:item_id", async (req, res) => {
+router.patch("/items/:item_id", upload.any(), async (req, res) => {
   try {
-    const data = req.body;
+    const files = req.files;
 
-    if (data.title.length > 1000 || data.description.length > 100) {
+    if (files.length) {
+      files.map(async (img) => {
+        await Image.create({
+          name: img.filename,
+        });
+      });
+
+      req.body.photo_names.push(...files.map((img) => img.filename));
+    }
+
+    if (!req.body) {
+      return res.status(404).json({ message: "Поля не должны быть пустыми" });
+    }
+
+    const { title, description, specifications } = req.body;
+
+    if (specifications) {
+      req.body.specifications = JSON.parse(specifications);
+    }
+    if (
+      (title && title.length > 1000) ||
+      (description && description.length > 100)
+    ) {
       return res.status(404).json({ message: "Превышен лимит по символам" });
+    }
+    if (await Item.findOne({ title: req.body.title })) {
+      return res
+        .status(404)
+        .json({ message: "Товар с таким название уже существует" });
     }
 
     const currentItem = await Item.findOne({ _id: req.params.item_id });
     if (!currentItem) {
       return res.status(404).json({ message: "Товар не найден" });
     }
-    if (!req.body) {
-      return res.status(404).json({ message: "Поля не должны быть пустыми" });
-    }
-    if (data.title && !titleValidate(data.title)) {
+    if (title && !titleValidate(title)) {
       return res
         .status(404)
         .json({ message: "Название товара содержит недопустимые символы" });
     }
-    if (data.description && !descriptionValidate(data.description)) {
+    if (description && !descriptionValidate(description)) {
       return res
         .status(404)
         .json({ message: "Описание товара содержит недопустимые символы" });
     }
 
     const newItem = await currentItem.updateOne(req.body);
-    console.log(newItem);
 
     res.status(200).json({ message: "Товар успешно обновлен" });
   } catch (error) {
@@ -172,17 +205,19 @@ router.delete("/items/:item_id", async (req, res) => {
 });
 
 //создание категории
-router.post("/categories", async (req, res) => {
+router.post("/categories", upload.any(), async (req, res) => {
   try {
-    const { title, photo_name } = req.body;
+    const file = req.files[0];
 
-    if (!title || !photo_name) {
+    const { title } = req.body;
+
+    if (!title || !file) {
       return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
     if (title.length > 1000) {
       return res.status(404).json({ message: "Превышен лимит по символам" });
     }
-    if (!nameValidate(title)) {
+    if (!titleValidate(title)) {
       return res
         .status(404)
         .json({ message: "Название категории содержит недопустимые символы" });
@@ -192,9 +227,13 @@ router.post("/categories", async (req, res) => {
         .status(404)
         .json({ message: "Категория с таким названием уже существует" });
     }
-    const newCategory = await Category.create({
+
+    await Image.create({
+      name: file.filename,
+    });
+    await Category.create({
       title,
-      photo_name: photo_name[0],
+      photo_name: file.filename,
     });
 
     res.status(200).json({ message: "Категория успешно добавлена" });
@@ -204,16 +243,24 @@ router.post("/categories", async (req, res) => {
 });
 
 //обновление категории
-router.patch("/categories/:category_id", async (req, res) => {
+router.patch("/categories/:category_id", upload.any(), async (req, res) => {
   try {
-    const { title, photo_name } = req.body;
-    if (!title || !photo_name) {
+    const file = req.files;
+    if (file.length) {
+      await Image.create({
+        name: file[0].filename,
+      });
+    }
+
+    if (!req.body) {
       return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
+    const { title } = req.body;
+
     if (title.length > 1000) {
       return res.status(404).json({ message: "Превышен лимит по символам" });
     }
-    if (!nameValidate(title)) {
+    if (!titleValidate(title)) {
       return res
         .status(404)
         .json({ message: "Название категории содержит недопустимые символы" });
@@ -228,15 +275,12 @@ router.patch("/categories/:category_id", async (req, res) => {
       _id: req.params.category_id,
     });
     if (!currentCategory) {
-      return res.status(404).json({ message: "Элемент не найден" });
-    }
-    if (!req.body) {
-      return res.status(404).json({ message: "Поля не должны быть пустыми" });
+      return res.status(404).json({ message: "Категория не найдена" });
     }
 
     await currentCategory.updateOne({
       title,
-      photo_name: photo_name[0],
+      photo_name: file.length ? file[0].filename : currentCategory.photo_name,
     });
 
     res.status(200).json({ message: "Категория успешно обновлена" });
@@ -272,16 +316,26 @@ router.delete("/categories/:category_id", async (req, res) => {
 });
 
 //создание подкатегории
-router.post("/subcategories", async (req, res) => {
+router.post("/subcategories", upload.any(), async (req, res) => {
   try {
-    const { title, photo_name, category_id } = req.body;
-    if (!title || !photo_name || !category_id) {
+    const file = req.files;
+
+    if (!file.length) {
+      return res.status(404).json({ message: "Изображение не загружено" });
+    } else {
+      await Image.create({
+        name: file[0].filename,
+      });
+    }
+
+    const { title, category_id } = req.body;
+    if (!title || !category_id) {
       return res.status(404).json({ message: "Поля не должны быть пустыми" });
     }
     if (title.length > 1000) {
       return res.status(404).json({ message: "Превышен лимит по символам" });
     }
-    if (!nameValidate(title)) {
+    if (!titleValidate(title)) {
       return res.status(404).json({
         message: "Название подкатегории содержит недопустимые символы",
       });
@@ -291,10 +345,10 @@ router.post("/subcategories", async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: "Категория не найдена" });
     }
-    console.log({ title, photo_name, category_id });
+
     const newSubcategory = await Subcategory.create({
       title,
-      photo_name: photo_name[0],
+      photo_name: file[0].filename,
       category_id,
     });
     category.subcategories.push(newSubcategory._id);
@@ -308,36 +362,64 @@ router.post("/subcategories", async (req, res) => {
 });
 
 //обновление подкатегории
-router.patch("/subcategories/:subcategory_id", async (req, res) => {
-  try {
-    const { title, photo_name } = req.body;
-    if (!title || !photo_name) {
-      return res.status(404).json({ message: "Поля не должны быть пустыми" });
-    }
-    if (title.length > 1000) {
-      return res.status(404).json({ message: "Превышен лимит по символам" });
-    }
-    if (!nameValidate(title)) {
-      return res.status(404).json({
-        message: "Название подкатегории содержит недопустимые символы",
+router.patch(
+  "/subcategories/:subcategory_id",
+  upload.any(),
+  async (req, res) => {
+    try {
+      const file = req.files;
+      if (file.length) {
+        await Image.create({
+          name: file[0].filename,
+        });
+      }
+
+      const { title } = req.body;
+
+      if (!title) {
+        return res.status(404).json({ message: "Поля не должны быть пустыми" });
+      }
+      if (title.length > 1000) {
+        return res.status(404).json({ message: "Превышен лимит по символам" });
+      }
+      if (!titleValidate(title)) {
+        return res.status(404).json({
+          message: "Название подкатегории содержит недопустимые символы",
+        });
+      }
+      if (await Subcategory.findOne({ title })) {
+        return res
+          .status(404)
+          .json({ message: "Подкатегория с таким названием уже существует" });
+      }
+      if (await Subcategory.findOne({ title })) {
+        return res
+          .status(404)
+          .json({ message: "Подкатегория с таким названием уже существует" });
+      }
+
+      const currentSubcategory = await Subcategory.findOne({
+        _id: req.params.subcategory_id,
       });
+      if (!currentSubcategory) {
+        return res
+          .status(404)
+          .json({ message: "Подкатегория не найдена не найден" });
+      }
+
+      await currentSubcategory.updateOne({
+        title,
+        photo_name: file.length
+          ? file[0].filename
+          : currentSubcategory.photo_name,
+      });
+
+      res.status(200).json({ message: "Категория успешно обновлена" });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    const currentSubcategory = await Subcategory.findOne({
-      _id: req.params.subcategory_id,
-    });
-    if (!currentSubcategory) {
-      return res.status(404).json({ message: "Элемент не найден" });
-    }
-
-    await currentSubcategory.updateOne({ title, photo_name: photo_name[0] });
-
-    res.status(200).json({ message: "Категория успешно обновлена" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Internal server error" });
   }
-});
+);
 
 //удаление подкатегории
 router.delete("/subcategories/:subcategory_id", async (req, res) => {
@@ -377,12 +459,19 @@ router.delete("/subcategories/:subcategory_id", async (req, res) => {
   }
 });
 
-router.post("/news", async (req, res) => {
+router.post("/news", upload.any(), async (req, res) => {
   try {
-    const { photo_name } = req.body;
-    console.log(photo_name);
-    const newPost = await News.create({
-      photo_name: photo_name[0],
+    const file = req.files;
+    if (!file.length) {
+      return res.status(404).json({ message: "Изображение не загружено" });
+    }
+
+    await Image.create({
+      name: file[0].filename,
+    });
+
+    await News.create({
+      photo_name: file[0].filename,
     });
 
     res.status(200).json({ message: "Новость успешно добавлена" });
@@ -394,6 +483,11 @@ router.post("/news", async (req, res) => {
 router.delete("/news/:news_id", async (req, res) => {
   try {
     const { news_id } = req.params;
+    if (!news_id) {
+      return res
+        .status(404)
+        .json({ message: "Не выбрана новость для удаления" });
+    }
 
     const currentPost = await News.findOne({ _id: news_id });
     if (!currentPost) {
@@ -413,7 +507,7 @@ router.delete("/news/:news_id", async (req, res) => {
 router.post("/uploadImage", upload.any(), async (req, res) => {
   try {
     const files = req.files;
-    console.log(files);
+
     if (!files) {
       return res.status(400).json({ message: "Файл не был загружен" });
     }

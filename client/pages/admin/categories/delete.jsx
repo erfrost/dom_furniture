@@ -20,7 +20,7 @@ const Delete = ({ categories, error }) => {
   const onSubmit = async () => {
     if (categoryId) {
       try {
-        setError(null);
+        setReqError(null);
         setSuccess(null);
         setWarning(null);
 
@@ -28,7 +28,7 @@ const Delete = ({ categories, error }) => {
 
         setSuccess("Категория успешно удалена");
       } catch (error) {
-        setError(
+        setReqError(
           error?.response?.data?.message ||
             "Произошла ошибка запроса. Попробуйте позднее"
         );
@@ -51,7 +51,7 @@ const Delete = ({ categories, error }) => {
           onSubmit={onSubmit}
         />
       </div>
-      {error && <AlertError text={error} />}
+      {reqError && <AlertError text={reqError} />}
       {warning && <AlertWarning text={warning} />}
       {success && <AlertSuccess text={success} />}
     </div>

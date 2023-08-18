@@ -39,17 +39,13 @@ const Add = ({ categories, error }) => {
 
       const formData = new FormData();
       formData.append(`image`, file);
+      formData.append("title", title || currentSubcategory.title);
+      formData.append("category_id", categoryId);
       try {
-        const photos = await axiosInstance.post("admin/uploadImage", formData, {
+        await axiosInstance.post("admin/subcategories", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        });
-
-        await axiosInstance.post("admin/subcategories", {
-          title: title || currentSubcategory.title,
-          photo_name: photos.data,
-          category_id: categoryId,
         });
         setSuccess("Подкатегория успешно добавлена");
       } catch (error) {

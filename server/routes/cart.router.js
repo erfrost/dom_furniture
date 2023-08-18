@@ -37,7 +37,6 @@ router.post("/update", auth, async (req, res) => {
 
     res.status(200).json(currentUser);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

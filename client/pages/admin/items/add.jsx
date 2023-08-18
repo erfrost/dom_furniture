@@ -1,17 +1,6 @@
 import axiosInstance from "@/axios.config";
 import { CloseIcon } from "@chakra-ui/icons";
-import {
-  IconButton,
-  Input,
-  NumberDecrementStepper,
-  NumberIncrementStepper,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  Select,
-  Stack,
-  Textarea,
-} from "@chakra-ui/react";
+import { IconButton, Input, Select, Stack, Textarea } from "@chakra-ui/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import styles from "@/Admin styles/ItemsAdd.module.css";
@@ -21,6 +10,7 @@ import AlertError from "@/AdminComponents/AlertError/AlertError";
 import AlertWarning from "@/AdminComponents/AlertWarning/AlertWarning";
 import AlertSuccess from "@/AdminComponents/AlertSuccess/AlertSuccess";
 import { MAX_DESCRIPTION_CHARACTERS, MAX_TITLE_CHARACTERS } from "@/config";
+import { numberInputValidate } from "@/utils/regexp";
 
 const Add = ({ categories, error }) => {
   const [subcategories, setSubcategories] = useState([]);
@@ -28,7 +18,7 @@ const Add = ({ categories, error }) => {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState(undefined);
   const [subcategoryId, setSubcategoryId] = useState(undefined);
-  const [price, setPrice] = useState(null);
+  const [price, setPrice] = useState(1000);
   const [specifications, setSpecifications] = useState([]);
   const [specificationTitle, setSpecificationTitle] = useState("");
   const [specificationValue, setSpecificationValue] = useState("");
@@ -98,23 +88,23 @@ const Add = ({ categories, error }) => {
 
     const formData = new FormData();
     files.map((img, index) => formData.append(`image_${index}`, img));
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("price", price);
+    formData.append("category_id", categoryId);
+    formData.append("subcategory_id", subcategoryId);
+    formData.append(
+      "specifications",
+      JSON.stringify(specifications || currentItem.specifications)
+    );
 
     try {
-      const { data } = await axiosInstance.post("admin/uploadImage", formData, {
+      const res = await axiosInstance.post("admin/items", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-
-      const res = await axiosInstance.post("admin/items", {
-        title,
-        description,
-        price,
-        category_id: categoryId,
-        subcategory_id: subcategoryId,
-        specifications: specifications,
-        photo_names: data,
-      });
+      console.log(res);
       setReqError(null);
       setSuccess(res.data.message);
     } catch (error) {
@@ -177,17 +167,17 @@ const Add = ({ categories, error }) => {
                 </option>
               ))}
             </Select>
-            <NumberInput>
-              <NumberInputField
-                onChange={(e) => setPrice(Number(e.target.value))}
-                value={price}
-                placeholder="Price"
-              />
-              <NumberInputStepper>
-                <NumberIncrementStepper />
-                <NumberDecrementStepper />
-              </NumberInputStepper>
-            </NumberInput>
+            <Input
+              className={styles.numberInput}
+              placeholder="Price"
+              value={price}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (numberInputValidate(value) || value === "") {
+                  setPrice(value);
+                }
+              }}
+            />
           </div>
           <div className={styles.specificationsContainer}>
             {specifications.length > 0 && (
@@ -215,10 +205,7 @@ const Add = ({ categories, error }) => {
                 onChange={(e) => setSpecificationValue(e.target.value)}
               />
             </div>
-            <div
-              className={styles.specificationsBtn}
-              onClick={addSpecification}
-            >
+            <div className={styles.btn} onClick={addSpecification}>
               Добавить характеристику
             </div>
           </div>
@@ -248,7 +235,7 @@ const Add = ({ categories, error }) => {
               </div>
             )}
           </Stack>
-          <div className={styles.submitBtn} onClick={onSubmit}>
+          <div className={styles.btn} onClick={onSubmit}>
             Добавить товар
           </div>
         </div>

@@ -1,17 +1,6 @@
 import axiosInstance from "@/axios.config";
 import { CloseIcon } from "@chakra-ui/icons";
-import {
-  IconButton,
-  Input,
-  NumberDecrementStepper,
-  NumberIncrementStepper,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  Select,
-  Stack,
-  Textarea,
-} from "@chakra-ui/react";
+import { IconButton, Input, Select, Stack, Textarea } from "@chakra-ui/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import styles from "@/Admin styles/ItemsAdd.module.css";
@@ -22,6 +11,7 @@ import AlertError from "@/AdminComponents/AlertError/AlertError";
 import AlertWarning from "@/AdminComponents/AlertWarning/AlertWarning";
 import AlertSuccess from "@/AdminComponents/AlertSuccess/AlertSuccess";
 import { MAX_DESCRIPTION_CHARACTERS, MAX_TITLE_CHARACTERS } from "@/config";
+import { numberInputValidate } from "@/utils/regexp";
 
 const Change = ({ categories, error }) => {
   const [subcategories, setSubcategories] = useState([]);
@@ -29,7 +19,7 @@ const Change = ({ categories, error }) => {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState(undefined);
   const [subcategoryId, setSubcategoryId] = useState(undefined);
-  const [price, setPrice] = useState(null);
+  const [price, setPrice] = useState(1000);
   const [specifications, setSpecifications] = useState([]);
   const [specificationTitle, setSpecificationTitle] = useState("");
   const [specificationValue, setSpecificationValue] = useState("");
@@ -44,11 +34,12 @@ const Change = ({ categories, error }) => {
   const [reqError, setReqError] = useState(error);
   const [warning, setWarning] = useState(null);
   const [success, setSuccess] = useState(null);
-
+  console.log(price);
   useEffect(() => {
     async function fetchSubcategories() {
       if (categoryId) {
         setReqError(null);
+        setSuccess(null);
         try {
           const res = await axiosInstance.get(`/subcategories/${categoryId}`);
           setSubcategories(res.data);
@@ -153,8 +144,8 @@ const Change = ({ categories, error }) => {
   };
 
   const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
     if (selectedFile instanceof Blob) {
-      const selectedFile = e.target.files[0];
       setFiles((prevState) => [...prevState, e.target.files[0]]);
 
       const reader = new FileReader();
@@ -174,35 +165,39 @@ const Change = ({ categories, error }) => {
   };
 
   const onSubmit = async (e) => {
-    if (currentItemId && files.length) {
-      setReqError(null);
-      setSuccess(null);
-      setWarning(null);
-
+    setReqError(null);
+    setSuccess(null);
+    setWarning(null);
+    if (currentItemId) {
       const formData = new FormData();
       files.map((img, index) => formData.append(`image_${index}`, img));
-
+      formData.append("title", title || currentItem.title);
+      formData.append("description", description || currentItem.description);
+      formData.append("price", price || currentItem.price);
+      formData.append("category_id", categoryId || currentItem.category_id);
+      formData.append(
+        "subcategory_id",
+        subcategoryId || currentItem.subcategory_id
+      );
+      formData.append(
+        "specifications",
+        JSON.stringify(specifications || currentItem.specifications)
+      );
+      currentItem.photo_names.forEach((photoName, index) => {
+        formData.append(`photo_names[${index}]`, photoName);
+      });
+      console.log(currentItem.photo_names);
       try {
-        const photos = await axiosInstance.post("admin/uploadImage", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
         const res = await axiosInstance.patch(
           `admin/items/${currentItemId || currentItem._id}`,
+          formData,
           {
-            title: title || currentItem.title,
-            description: description || currentItem.description,
-            price: price || currentItem.price,
-            category_id: categoryId || currentItem.category_id,
-            subcategory_id: subcategoryId || currentItem.subcategory_id,
-            specifications: specifications || currentItem.specifications,
-            photo_names: photos.data.length
-              ? [...currentItem.photo_names, ...photos.data]
-              : currentItem.photo_names,
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
           }
         );
+        console.log(res);
 
         setReqError(null);
         setSuccess(res.data.message);
@@ -212,7 +207,7 @@ const Change = ({ categories, error }) => {
             "Произошла ошибка запроса. Попробуйте позднее"
         );
       }
-    }
+    } else setWarning("Выберите товар для его изменения");
   };
 
   return (
@@ -281,17 +276,17 @@ const Change = ({ categories, error }) => {
               ))}
             </Select>
 
-            <NumberInput className={styles.numberInput}>
-              <NumberInputField
-                onChange={(e) => setPrice(Number(e.target.value))}
-                value={price}
-                placeholder="Price"
-              />
-              <NumberInputStepper>
-                <NumberIncrementStepper />
-                <NumberDecrementStepper />
-              </NumberInputStepper>
-            </NumberInput>
+            <Input
+              className={styles.numberInput}
+              placeholder="Price"
+              value={price}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (numberInputValidate(value) || value === "") {
+                  setPrice(value);
+                }
+              }}
+            />
           </div>
           <div className={styles.specificationsContainer}>
             {specifications.length > 0 && (
@@ -322,10 +317,7 @@ const Change = ({ categories, error }) => {
                 onChange={(e) => setSpecificationValue(e.target.value)}
               />
             </div>
-            <div
-              className={styles.specificationsBtn}
-              onClick={addSpecification}
-            >
+            <div className={styles.btn} onClick={addSpecification}>
               Добавить характеристику
             </div>
           </div>
@@ -379,7 +371,7 @@ const Change = ({ categories, error }) => {
               ))}
             </div>
           </Stack>
-          <div className={styles.submitBtn} onClick={onSubmit}>
+          <div className={styles.btn} onClick={onSubmit}>
             Обновить товар
           </div>
         </div>

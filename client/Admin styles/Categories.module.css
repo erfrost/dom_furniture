@@ -28,3 +28,14 @@
 .btn:hover {
     background-color: #825FED;
 }
+
+@media screen and (max-width: 1000px) {
+    .content {
+        min-width: 65%;
+    }
+}
+@media screen and (max-width: 485px) {
+    .content {
+        min-width: 80%;
+    }
+}

@@ -77,20 +77,15 @@ const Change = ({ categories, error }) => {
 
       const formData = new FormData();
       formData.append(`image`, file);
+      formData.append("title", title || currentSubcategory.title);
       try {
-        const photos = await axiosInstance.post("admin/uploadImage", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-        console.log(photos.data);
         const res = await axiosInstance.patch(
           `admin/subcategories/${subcategoryId}`,
+          formData,
           {
-            title: title || currentSubcategory.title,
-            photo_name: photos.data.length
-              ? photos.data
-              : [currentSubcategory.photo_name],
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
           }
         );
         console.log(res);
@@ -126,7 +121,7 @@ const Change = ({ categories, error }) => {
           btnText="Обновить категорию"
         />
       </div>
-      {error && <AlertError text={error} />}
+      {reqError && <AlertError text={reqError} />}
       {warning && <AlertWarning text={warning} />}
       {success && <AlertSuccess text={success} />}
     </div>

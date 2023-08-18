@@ -1,18 +1,19 @@
 .AdminHeader {  
     display: flex;
     flex-direction: row;
+    z-index: 9999;
 }
 .AdminHeader div {
     z-index: 9999 !important;
 }
 .btn {
-    width: 50px !important;
-    height: 50px !important;
+    width: 55px !important;
+    height: 55px !important;
     border-radius: 50% !important;
     background-color: #BAA8F0;
     position: fixed;
-    top: 25px;
-    right: 25px;
+    top: -25px;
+    right: -25px;
 }
 .btn span {
     color: white;
@@ -21,7 +22,7 @@
     background-color: #825FED !important;
 }
 .list {
-    padding: 0 !important;
+    padding: 5px !important;
     border-radius: 15px !important;
 }
 .menuBtn {
@@ -30,13 +31,18 @@
 }
 .menuBtn:hover {
     background-color: #BAA8F0;
+    color: white;
 }
 .menuBtn:focus {
     background-color: #BAA8F0 !important;
+    color: white;
 }
 .firstBtn {
     border-top-left-radius: 15px !important;
     border-top-right-radius: 15px !important;
+}
+.centralBtn {
+    border-radius: 15px !important;
 }
 .lastBtn {
     border-bottom-left-radius: 15px !important;

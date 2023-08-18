@@ -7,15 +7,12 @@ import {
   MenuItem,
   MenuList,
 } from "@chakra-ui/react";
-import { HamburgerIcon } from "@chakra-ui/icons";
 
 const AdminNav = () => {
   return (
     <div className={styles.AdminHeader}>
       <Menu>
-        <MenuButton className={styles.btn}>
-          <HamburgerIcon boxSize="50%" />
-        </MenuButton>
+        <MenuButton className={styles.btn}></MenuButton>
         <MenuList className={styles.list}>
           <Link href="/admin/items/add">
             <MenuItem className={`${styles.menuBtn} ${styles.firstBtn}`}>
@@ -69,6 +66,12 @@ const AdminNav = () => {
           <Link href="/admin/news/delete">
             <MenuItem className={`${styles.menuBtn} ${styles.lastBtn}`}>
               Удаление новости
+            </MenuItem>
+          </Link>
+          <MenuDivider />
+          <Link href="/admin/feedbacks">
+            <MenuItem className={`${styles.menuBtn} ${styles.centralBtn}`}>
+              Отзывы
             </MenuItem>
           </Link>
         </MenuList>

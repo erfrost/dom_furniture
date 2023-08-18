@@ -30,3 +30,19 @@
 .btn:hover {
     background-color: #825FED;
 }
+
+@media screen and (max-width: 1276px) {
+    .content {
+        width: 65%;
+    }
+}
+@media screen and (max-width: 1030px) {
+    .content {
+        width: 80%;
+    }
+}
+@media screen and (max-width: 550px) {
+    .container {
+        padding: 0;
+    }
+}

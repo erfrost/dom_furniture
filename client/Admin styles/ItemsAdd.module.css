@@ -43,7 +43,7 @@
     align-items: center;
     gap: 25px;
 }
-.specificationsBtn {
+.btn {
     width: 100%;
     border-radius: 6px;
     background-color: #BAA8F0;
@@ -56,7 +56,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
 }
-.specificationsBtn:hover {
+.btn:hover {
     background-color: #825FED;
 }
 .specificationsItems {
@@ -96,7 +96,6 @@
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    gap: 25px;
 }
 .uploadForm {
     width: 100%;
@@ -140,7 +139,7 @@
     height: 100px;
     border-radius: 6px;
 }
-.submitBtn {
+.btn {
     width: 100%;
     padding: 15px 0;
     background-color: #BAA8F0;
@@ -153,7 +152,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
 }
-.submitBtn:hover {
+.btn:hover {
     background-color: #825FED;
 }
 .photoContainer {
@@ -175,4 +174,36 @@
 }
 .imageBtn:hover {
     background-color: #BAA8F0 !important;
+}
+@media screen and (max-width: 1250px) {
+    .selects {
+        flex-direction: column;
+    }
+}
+@media screen and (max-width: 830px) {
+   .specificationsInputs {
+        gap: 5px;
+   }
+}
+@media screen and (max-width: 650px) {
+    .main {
+        padding: 25px;
+        gap: 25px;
+    }
+}
+@media screen and (max-width: 550px) {
+    .main {
+        flex-direction: column;
+    }
+    .forms {
+        min-width: 100%;
+    }
+    .imageContainer {
+        width: 100%;
+    }
+}
+@media screen and (max-width: 350px) {
+    .btn {
+        font-size: 15px;
+    }
 }

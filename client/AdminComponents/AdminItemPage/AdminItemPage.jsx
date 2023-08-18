@@ -44,8 +44,10 @@ const AdminItemPage = ({ categories }) => {
           console.log(res);
           setSubcategories(res.data);
         } catch (error) {
-          console.log(error);
-          setReqError(error?.response?.data?.message || error.message);
+          setReqError(
+            error?.response?.data?.message ||
+              "Произошла ошибка запроса. Попробуйте позднее"
+          );
         }
       }
     }
@@ -100,8 +102,10 @@ const AdminItemPage = ({ categories }) => {
       setReqError(null);
       setSuccess(res.data.message);
     } catch (error) {
-      setReqError(error?.response?.data?.message || error.message);
-      console.log(error);
+      setReqError(
+        error?.response?.data?.message ||
+          "Произошла ошибка запроса. Попробуйте позднее"
+      );
     }
   };
 

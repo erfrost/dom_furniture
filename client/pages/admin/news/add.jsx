@@ -31,27 +31,23 @@ const Add = () => {
 
   const onSubmit = async () => {
     if (file) {
-      setError(null);
+      setReqError(null);
       setSuccess(null);
       setWarning(null);
 
       const formData = new FormData();
       formData.append(`image`, file);
       try {
-        const photos = await axiosInstance.post("admin/uploadImage", formData, {
+        const res = await axiosInstance.post(`admin/news`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        });
-        console.log(photos.data);
-        const res = await axiosInstance.post(`admin/news`, {
-          photo_name: photos.data,
         });
         console.log(res);
         setSuccess("Новость успешно добавлена");
       } catch (error) {
         console.log(error);
-        setError(
+        setReqError(
           error?.response?.data?.message ||
             "Произошла ошибка запроса. Попробуйте позднее"
         );

@@ -4,7 +4,6 @@ const fs = require("fs");
 
 const deleteImage = async (photo_names) => {
   try {
-    console.log(photo_names);
     photo_names.map(async (imgName) => {
       await Image.deleteOne({ name: imgName });
 

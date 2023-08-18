@@ -39,20 +39,12 @@ const Add = () => {
 
       const formData = new FormData();
       formData.append(`image`, file);
+      formData.append("title", title);
       try {
-        const { data } = await axiosInstance.post(
-          "admin/uploadImage",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-        console.log(title, data);
-        const res = await axiosInstance.post("admin/categories", {
-          title,
-          photo_name: data,
+        const res = await axiosInstance.post("admin/categories", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
         console.log(res);
         setSuccess("Категория успешно дабавлена");

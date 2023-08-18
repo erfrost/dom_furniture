@@ -5,7 +5,7 @@ const titleValidate = (title) => {
 };
 
 const descriptionValidate = (description) => {
-  const regex = /^[а-яА-Яa-zA-Z0-9-]+$/;
+  const regex = /^[а-яА-Яa-zA-Z0-9\s\-.,!?;:]+$/;
 
   return regex.test(description);
 };

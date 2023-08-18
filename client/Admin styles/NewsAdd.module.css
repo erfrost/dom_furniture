@@ -44,3 +44,14 @@
 .btn:hover {
     background-color: #825FED;
 }
+
+@media screen and (max-width: 550px) {
+    .content {
+        width: 70%;
+    }
+}
+@media screen and (max-width: 375px) {
+    .content {
+        width: 85%;
+    }
+}
